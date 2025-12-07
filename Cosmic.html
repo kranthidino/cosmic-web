@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumMesh - Interactive Particle Network</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #0a0a14;
+        }
+
+        #canvas {
+            display: block;
+            background: #0a0a14;
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            max-width: 320px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #60a5fa, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: #9333ea;
+            color: white;
+            padding: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #7e22ce;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: #d1d5db;
+            margin-bottom: 6px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #374151;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #60a5fa;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #60a5fa;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .mode-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .mode-btn {
+            padding: 8px;
+            font-size: 12px;
+            background: #374151;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+            background: #4b5563;
+        }
+
+        .mode-btn.active {
+            background: #2563eb;
+        }
+
+        .mode-btn.rainbow.active {
+            background: #9333ea;
+        }
+
+        .mode-btn.electric.active {
+            background: #06b6d4;
+        }
+
+        .info {
+            font-size: 12px;
+            color: #9ca3af;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 12px;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="control-panel">
+        <h1>QuantumMesh</h1>
+        
+        <div class="button-group">
+            <button class="btn-primary" id="playPauseBtn">
+                <span id="playIcon">⏸</span> Pause
+            </button>
+            <button class="btn-secondary" id="resetBtn">↻</button>
+        </div>
+
+        <div class="control-group">
+            <label>Particles: <span id="particleValue">80</span></label>
+            <input type="range" id="particleSlider" min="20" max="150" value="80">
+        </div>
+
+        <div class="control-group">
+            <label>Connection Distance: <span id="distanceValue">120</span></label>
+            <input type="range" id="distanceSlider" min="50" max="200" value="120">
+        </div>
+
+        <div class="control-group">
+            <label>Visual Mode</label>
+            <div class="mode-buttons">
+                <button class="mode-btn active" data-mode="normal">Normal</button>
+                <button class="mode-btn rainbow" data-mode="rainbow">Rainbow</button>
+                <button class="mode-btn electric" data-mode="electric">⚡ Electric</button>
+            </div>
+        </div>
+
+        <div class="info">
+            💡 Click and drag to attract particles
+        </div>
+    </div>
+
+    <div class="footer">
+        Interactive 3D Particle Network
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let isRunning = true;
+        let particleCount = 80;
+        let connectionDistance = 120;
+        let mode = 'normal';
+        let particles = [];
+        let animationId;
+        
+        const mouse = {
+            x: 0,
+            y: 0,
+            active: false
+        };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.z = Math.random() * 1000;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.vz = (Math.random() - 0.5) * 2;
+                this.hue = Math.random() * 360;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.z += this.vz;
+
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+                if (this.z < 0 || this.z > 1000) this.vz *= -1;
+
+                if (mouse.active) {
+                    const dx = mouse.x - this.x;
+                    const dy = mouse.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 150) {
+                        const force = (150 - dist) / 150;
+                        this.vx += dx * force * 0.01;
+                        this.vy += dy * force * 0.01;
+                    }
+                }
+            }
+
+            draw() {
+                const scale = 1000 / (1000 + this.z);
+                const x2d = this.x * scale + canvas.width * (1 - scale) / 2;
+                const y2d = this.y * scale + canvas.height * (1 - scale) / 2;
+                const size = scale * 3;
+
+                ctx.beginPath();
+                ctx.arc(x2d, y2d, size, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${this.hue}, 80%, 60%, ${scale})`;
+                ctx.fill();
+
+                return { x: x2d, y: y2d, scale };
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function drawConnections(positions) {
+            for (let i = 0; i < positions.length; i++) {
+                for (let j = i + 1; j < positions.length; j++) {
+                    const dx = positions[i].x - positions[j].x;
+                    const dy = positions[i].y - positions[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < connectionDistance) {
+                        const opacity = (1 - dist / connectionDistance) * 0.5;
+                        const avgScale = (positions[i].scale + positions[j].scale) / 2;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(positions[i].x, positions[i].y);
+                        ctx.lineTo(positions[j].x, positions[j].y);
+                        
+                        if (mode === 'rainbow') {
+                            const hue = (i * 137.5 + Date.now() * 0.05) % 360;
+                            ctx.strokeStyle = `hsla(${hue}, 70%, 60%, ${opacity * avgScale})`;
+                        } else if (mode === 'electric') {
+                            ctx.strokeStyle = `rgba(0, 255, 255, ${opacity * avgScale})`;
+                        } else {
+                            ctx.strokeStyle = `rgba(100, 150, 255, ${opacity * avgScale})`;
+                        }
+                        
+                        ctx.lineWidth = avgScale * 1.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(10, 10, 20, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const positions = [];
+            
+            particles.forEach(particle => {
+                particle.update();
+                const pos = particle.draw();
+                positions.push(pos);
+            });
+
+            drawConnections(positions);
+
+            if (isRunning) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+
+        function resetParticles() {
+            particles.forEach(p => p.reset());
+        }
+
+        // Event Listeners
+        window.addEventListener('resize', resizeCanvas);
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        canvas.addEventListener('mousedown', () => {
+            mouse.active = true;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            mouse.active = false;
+        });
+
+        document.getElementById('playPauseBtn').addEventListener('click', function() {
+            isRunning = !isRunning;
+            this.innerHTML = isRunning ? '<span>⏸</span> Pause' : '<span>▶</span> Play';
+            if (isRunning) animate();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', resetParticles);
+
+        document.getElementById('particleSlider').addEventListener('input', function() {
+            particleCount = parseInt(this.value);
+            document.getElementById('particleValue').textContent = particleCount;
+            initParticles();
+        });
+
+        document.getElementById('distanceSlider').addEventListener('input', function() {
+            connectionDistance = parseInt(this.value);
+            document.getElementById('distanceValue').textContent = connectionDistance;
+        });
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                mode = this.dataset.mode;
+            });
+        });
+
+        // Initialize
+        resizeCanvas();
+        initParticles();
+        animate();
+    </script>
+</body>
+</html>
